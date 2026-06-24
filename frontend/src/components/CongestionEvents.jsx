@@ -1,6 +1,9 @@
 import { useMemo } from 'react';
 import { AlertOctagon, Sparkles } from 'lucide-react';
 
+const THRESHOLD_SEVERE = parseFloat(import.meta.env.VITE_THRESHOLD_SEVERE || '0.8');
+const THRESHOLD_MODERATE = parseFloat(import.meta.env.VITE_THRESHOLD_MODERATE || '0.5');
+
 export default function CongestionEvents({ stats }) {
   // Identify congested routers from the stats feed
   const events = useMemo(() => {
@@ -11,10 +14,10 @@ export default function CongestionEvents({ stats }) {
         let severity = null;
         let severityClass = '';
 
-        if (r.load > 0.8) {
+        if (r.load >= THRESHOLD_SEVERE) {
           severity = 'SEVERE';
           severityClass = 'bg-rose-50 border-rose-200 text-rose-700';
-        } else if (r.load > 0.5) {
+        } else if (r.load >= THRESHOLD_MODERATE) {
           severity = 'MODERATE';
           severityClass = 'bg-amber-50 border-amber-200 text-amber-700';
         }
@@ -22,7 +25,7 @@ export default function CongestionEvents({ stats }) {
         if (severity) {
           return {
             routerId: r.id,
-            utilization: utilPercent.toFixed(0),
+            utilization: utilPercent.toFixed(3),
             severity,
             severityClass
           };

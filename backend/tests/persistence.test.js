@@ -100,14 +100,15 @@ describe('Persistence Integration Tests', () => {
 
   describe('TrafficSettingsRepository', () => {
     it('should save and retrieve traffic settings', async () => {
-      const trafficData = { packetRate: 4.2, packetSizeMin: 120, packetSizeMax: 1800, enabled: true };
+      const trafficData = { id: 'stream-1', packetRate: 4.2, packetSizeMin: 120, packetSizeMax: 1800, enabled: true };
       
-      const saved = await trafficRepository.save(trafficData);
-      expect(saved.id).toBe('default-network');
+      const saved = await trafficRepository.save(trafficData, 'default-network');
+      expect(saved.id).toBe('stream-1');
       expect(saved.packetRate).toBe(4.2);
 
-      const fetched = await trafficRepository.get();
+      const fetched = await trafficRepository.get('default-network');
       expect(fetched).toBeDefined();
+      expect(fetched.id).toBe('stream-1');
       expect(fetched.packetSizeMax).toBe(1800);
       expect(fetched.enabled).toBe(true);
     });

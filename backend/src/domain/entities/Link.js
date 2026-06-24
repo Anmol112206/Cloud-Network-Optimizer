@@ -7,10 +7,10 @@ class Link {
     this.id = id;
     this.sourceId = sourceId;
     this.targetId = targetId;
-    this.bandwidth = bandwidth; // Mbps
+    this.bandwidth = bandwidth; // MBpt
     this.latency = latency;     // ms
     this.packets = [];
-    this.currentUsage = 0;      // Mbps
+    this.currentUsage = 0;      // MBpt
     this.createdAt = new Date();
   }
 
@@ -22,8 +22,9 @@ class Link {
     if (this.currentUsage > 0) {
       return this.bandwidth > 0 ? this.currentUsage / this.bandwidth : 0;
     }
-    // Fallback: estimate usage based on packets in transit (e.g. 10 Mbps per packet)
-    const activeUsage = this.packets.length * 10;
+    // Calculate actual bandwidth usage based on the sizes of packets in transit
+    const totalBytes = this.packets.reduce((sum, p) => sum + (p.getSize ? p.getSize() : (p.size || 0)), 0);
+    const activeUsage = totalBytes / 1000000; // Bytes to Megabytes (10^6 Bytes per Megabyte)
     return this.bandwidth > 0 ? activeUsage / this.bandwidth : 0;
   }
 

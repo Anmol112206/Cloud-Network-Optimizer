@@ -16,6 +16,7 @@ import CongestionChart from '../components/CongestionChart';
 import BottleneckTable from '../components/BottleneckTable';
 import CongestionEvents from '../components/CongestionEvents';
 import CustomTopologyBuilder from '../components/CustomTopologyBuilder';
+import ConfigurationDetails from '../components/ConfigurationDetails';
 import RealNetworkMetricsCard from '../components/RealNetworkMetricsCard';
 import RealNetworkChart from '../components/RealNetworkChart';
 
@@ -213,6 +214,11 @@ export default function Dashboard() {
                   <div className="lg:col-span-4">
                     <CustomTopologyBuilder stats={stats} onUpdate={() => loadData()} />
                   </div>
+                </div>
+
+                {/* Configuration Inventory Details */}
+                <div className="grid grid-cols-1 gap-6">
+                  <ConfigurationDetails stats={stats} onUpdate={() => loadData()} />
                 </div>
 
                 {/* Dashboard Bottom Section: Charts, Bottlenecks, and Events */}

@@ -81,13 +81,14 @@ describe('Metrics and Congestion Engine Suite', () => {
       expect(link.getLoad()).toBe(85);
     });
 
-    it('should fall back to packet count calculation if currentUsage is 0', () => {
+    it('should fall back to packet size calculation if currentUsage is 0', () => {
       const link = new Link('L1', 'R1', 'R2', 100, 10);
-      const p1 = new Packet('P1', 'R1', 'R2', 100);
+      const p1 = new Packet('P1', 'R1', 'R2', 100); // 100 Bytes
       link.transmit(p1);
 
-      // 1 packet * 10 Mbps = 10 Mbps usage. 10 / 100 = 0.1 (10%)
-      expect(link.getUtilization()).toBe(0.1);
+      // 1 packet of 100 Bytes = 0.0001 Megabytes.
+      // 0.0001 / 100 = 0.000001 (0.0001%)
+      expect(link.getUtilization()).toBe(0.000001);
     });
   });
 

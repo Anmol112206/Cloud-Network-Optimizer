@@ -2,6 +2,9 @@ import { useMemo } from 'react';
 import { ReactFlow, Background, Controls } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
+const THRESHOLD_SEVERE = parseFloat(import.meta.env.VITE_THRESHOLD_SEVERE || '0.8');
+const THRESHOLD_MODERATE = parseFloat(import.meta.env.VITE_THRESHOLD_MODERATE || '0.5');
+
 export default function TopologyGraph({ stats }) {
   const { nodes, edges } = useMemo(() => {
     const routers = stats?.routers || [];
@@ -15,10 +18,10 @@ export default function TopologyGraph({ stats }) {
       const load = r.load || 0;
       
       // Load dependent styles for nodes
-      const bg = load > 0.8 ? '#ef4444' : load > 0.5 ? '#f59e0b' : '#10b981';
-      const border = load > 0.8 ? '#dc2626' : load > 0.5 ? '#d97706' : '#059669';
+      const bg = load >= THRESHOLD_SEVERE ? '#ef4444' : load >= THRESHOLD_MODERATE ? '#f59e0b' : '#10b981';
+      const border = load >= THRESHOLD_SEVERE ? '#dc2626' : load >= THRESHOLD_MODERATE ? '#d97706' : '#059669';
       const text = '#ffffff';
-      const glow = load > 0.8 ? '0 0 20px rgba(239, 68, 68, 0.15)' : load > 0.5 ? '0 0 15px rgba(245, 158, 11, 0.1)' : '0 0 15px rgba(16, 185, 129, 0.1)';
+      const glow = load >= THRESHOLD_SEVERE ? '0 0 20px rgba(239, 68, 68, 0.15)' : load >= THRESHOLD_MODERATE ? '0 0 15px rgba(245, 158, 11, 0.1)' : '0 0 15px rgba(16, 185, 129, 0.1)';
 
       return {
         id: r.id,
@@ -28,12 +31,12 @@ export default function TopologyGraph({ stats }) {
           label: (
             <div className="text-center text-white">
               <div className="font-bold text-xs font-outfit text-white">{r.id}</div>
-              <div className="text-[10px] opacity-90 mt-0.5 font-medium">Load: {(load * 100).toFixed(0)}%</div>
+              <div className="text-[10px] opacity-90 mt-0.5 font-medium">Load: {(load * 100).toFixed(3)}%</div>
               <div className="text-[9px] opacity-80 font-medium">Queue: {r.queueLength}</div>
             </div>
           )
         },
-        className: `rounded-xl transition-all duration-300 ${load > 0.8 ? 'animate-pulse' : ''}`,
+        className: `rounded-xl transition-all duration-300 ${stats?.trafficEnabled && load >= THRESHOLD_SEVERE ? 'animate-pulse' : ''}`,
         style: {
           width: 95,
           backgroundColor: bg,
@@ -52,11 +55,11 @@ export default function TopologyGraph({ stats }) {
       let strokeWidth = 3;
       let strokeDasharray = undefined;
 
-      if (util > 0.8) {
+      if (util >= THRESHOLD_SEVERE) {
         strokeColor = '#ef4444'; // Red
         strokeWidth = 4.5;
         strokeDasharray = '5,5';
-      } else if (util > 0.5) {
+      } else if (util >= THRESHOLD_MODERATE) {
         strokeColor = '#f59e0b'; // Yellow
         strokeWidth = 3.5;
       }
@@ -65,13 +68,13 @@ export default function TopologyGraph({ stats }) {
         id: l.id,
         source: l.source,
         target: l.target,
-        animated: util > 0.2, // Animate when traffic is transiting
+        animated: stats?.trafficEnabled && util > 0.2, // Animate when traffic is transiting and simulation is running
         style: { 
           stroke: strokeColor, 
           strokeWidth,
           strokeDasharray
         },
-        label: `${(util * 100).toFixed(0)}%`,
+        label: `${(util * 100).toFixed(3)}%`,
         labelStyle: { fill: strokeColor, fontSize: 9, fontWeight: 'bold' },
         labelBgStyle: { fill: '#ffffff', fillOpacity: 0.95 },
         labelBgPadding: [4, 2],
@@ -83,7 +86,7 @@ export default function TopologyGraph({ stats }) {
   }, [stats?.routers, stats?.links]);
 
   return (
-    <div className="h-[420px] w-full rounded-2xl border border-slate-200 bg-slate-50 shadow-sm relative overflow-hidden">
+    <div className="h-[485px] w-full rounded-2xl border border-slate-200 bg-slate-50 shadow-sm relative overflow-hidden">
       <div className="absolute top-4 left-4 z-10 px-3 py-1.5 rounded-lg border bg-white/95 border-slate-200 text-slate-700 shadow-sm">
         <span className="text-xs font-semibold uppercase tracking-wider font-outfit">Topology Map</span>
       </div>

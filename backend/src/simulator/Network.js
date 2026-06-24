@@ -39,7 +39,9 @@ class Network {
     const routerStats = Array.from(this.routers.values()).map(r => ({
       id: r.getId(),
       load: r.getLoad(),
-      queueLength: r.getQueueLength()
+      queueLength: r.getQueueLength(),
+      capacity: r.getCapacity(),
+      processingRate: r.getProcessingRate()
     }));
 
     const linkStats = Array.from(this.links.values()).map(l => ({
@@ -47,7 +49,9 @@ class Network {
       source: l.getSource(),
       target: l.getTarget(),
       utilization: l.getUtilization(),
-      load: l.getLoad()
+      load: l.getLoad(),
+      bandwidth: l.getBandwidth(),
+      latency: l.getLatency()
     }));
 
     return {

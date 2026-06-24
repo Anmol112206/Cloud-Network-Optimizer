@@ -66,32 +66,46 @@ class MetricsService {
    */
   getNetworkMetrics() {
     const packets = this.network.getPackets();
-    const totalPackets = packets.length;
     
     // Ticks elapsed in simulation
-    const ticks = this.clock ? this.clock.getCurrentTime() : 1;
+    const currentTick = this.clock ? this.clock.getCurrentTime() : 1;
 
-    // Filter packet collections
-    const deliveredPackets = packets.filter(p => p.getStatus() === Packet.States.DELIVERED);
-    const droppedCount = packets.filter(p => p.getStatus() === Packet.States.DROPPED).length;
+    // Use a rolling window of the last 10 ticks for real-time responsiveness
+    const WINDOW_SIZE = 10;
+    const windowStart = Math.max(0, currentTick - WINDOW_SIZE + 1);
 
-    // KPI 1: Throughput = DeliveredPackets / Ticks
-    const throughput = ticks > 0 ? deliveredPackets.length / ticks : 0;
+    const rollingDelivered = packets.filter(p => 
+      p.getStatus() === Packet.States.DELIVERED && 
+      (p.deliveredAt !== null ? p.deliveredAt : p.createdAt) >= windowStart
+    );
 
-    // KPI 2: Packet Loss = Dropped / TotalPackets
-    const packetLoss = totalPackets > 0 ? droppedCount / totalPackets : 0;
+    const rollingDropped = packets.filter(p => 
+      p.getStatus() === Packet.States.DROPPED && 
+      (p.droppedAt !== null ? p.droppedAt : p.createdAt) >= windowStart
+    );
 
-    // KPI 3: Average Latency = sum(deliveredTick - createdTick) / count
-    const totalLatency = deliveredPackets.reduce((sum, p) => sum + p.getDeliveryTime(), 0);
-    const avgLatency = deliveredPackets.length > 0 ? totalLatency / deliveredPackets.length : 0;
+    const rollingDeliveredCount = rollingDelivered.length;
+    const rollingDroppedCount = rollingDropped.length;
+    const rollingTotalCount = rollingDeliveredCount + rollingDroppedCount;
+
+    // KPI 1: Throughput = DeliveredPackets in window / Elapsed ticks in window
+    const elapsedTicksInWindow = windowStart === 0 ? currentTick : currentTick - windowStart + 1;
+    const throughput = elapsedTicksInWindow > 0 ? rollingDeliveredCount / elapsedTicksInWindow : 0;
+
+    // KPI 2: Packet Loss = Dropped / Total in window
+    const packetLoss = rollingTotalCount > 0 ? rollingDroppedCount / rollingTotalCount : 0;
+
+    // KPI 3: Average Latency = sum(deliveredTick - createdTick) in this window / delivered count in window
+    const totalLatency = rollingDelivered.reduce((sum, p) => sum + p.getDeliveryTime(), 0);
+    const avgLatency = rollingDeliveredCount > 0 ? totalLatency / rollingDeliveredCount : 0;
 
     return {
       throughput,
       packetLoss,
       averageLatency: avgLatency,
-      totalPackets,
-      deliveredPackets: deliveredPackets.length,
-      droppedPackets: droppedCount
+      totalPackets: rollingTotalCount,
+      deliveredPackets: rollingDeliveredCount,
+      droppedPackets: rollingDroppedCount
     };
   }
 }

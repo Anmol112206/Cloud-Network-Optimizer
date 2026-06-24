@@ -110,8 +110,8 @@ This section documents how the simulation engine operates, how metrics are compu
 *   **Expected Telemetry & Results**:
     *   **Throughput**: 1.0 packets/tick (limited by `R2`'s processing rate of 1)
     *   **Packet Loss**: 50% (once `R2`'s queue fills to its capacity of 5, 1 out of every 2 arriving packets is dropped)
-    *   **Average Latency**: 7.0 ticks (1 tick on `L1` + 5 ticks queuing delay inside `R2` + 1 tick on `L2`)
-    *   **Queues**: `R2`'s queue stays full at 5/5 (100% Load, shown as Red in the UI).
+    *   **Average Latency**: 6.0 ticks (1 tick on `L1` + 5 ticks queuing delay inside `R2` + 1 tick on `L2`)
+    *   **Queues**: `R2`'s queue stays at 4/5 (80% Load, shown as Red/congested in the UI since it meets the 80% congestion threshold, with 1 packet drained and 2 packets arriving every tick).
     *   **Link Utilization**: `L1` is 0.001% (2 active packets), `L2` is 0.0005% (1 active packet).
 
 ### Test Scenario 3: Dijkstra Shortest Path Routing Selection
@@ -122,7 +122,7 @@ This section documents how the simulation engine operates, how metrics are compu
     *   Link `L13` (`R1` $\leftrightarrow$ `R3`): Latency = 2 ticks, Bandwidth = 100 MBpt
     *   Link `L34` (`R3` $\leftrightarrow$ `R4`): Latency = 2 ticks, Bandwidth = 100 MBpt
 *   **Traffic Configuration**:
-    *   Stream: `R1` $\rightarrow$ `R4` (Rate = 1 packet/tick)
+    *   Stream: `R1` $\rightarrow$ `R4` (Rate = 1 packet/tick, packet size = 500 Bytes)
 *   **Congestion & Bottlenecks**: None. Shows path selection.
     *   Path 1 (`R1` $\rightarrow$ `R2` $\rightarrow$ `R4`): Total Latency = 7 ticks.
     *   Path 2 (`R1` $\rightarrow$ `R3` $\rightarrow$ `R4`): Total Latency = 4 ticks.
@@ -157,13 +157,13 @@ This section documents how the simulation engine operates, how metrics are compu
     *   Link `L23` (`R2` $\leftrightarrow$ `R3`): Latency = 1 tick, Bandwidth = 100 MBpt
     *   Link `L34` (`R3` $\leftrightarrow$ `R4`): Latency = 1 tick, Bandwidth = 100 MBpt
 *   **Traffic Configuration**:
-    *   Stream A: `R1` $\rightarrow$ `R4` (Rate = 2 packets/tick)
-    *   Stream B: `R2` $\rightarrow$ `R4` (Rate = 2 packets/tick)
+    *   Stream A: `R1` $\rightarrow$ `R4` (Rate = 2 packets/tick , packet size = 10,000,000 Bytes = 10 MB)
+    *   Stream B: `R2` $\rightarrow$ `R4` (Rate = 2 packets/tick , packet size = 10,000,000 Bytes = 10 MB)
 *   **Congestion & Bottlenecks**: **Converging processing bottleneck at `R3`**. Packets from both streams converge at `R3`, sending a combined traffic of 4 packets/tick. Since `R3` can only drain 2 packets/tick, its queue accumulates at a rate of 2 packets/tick, causing congestion.
 *   **Expected Telemetry & Results**:
     *   **Throughput**: 2.0 packets/tick
     *   **Packet Loss**: 50% (once `R3` queue reaches its capacity of 5, 2 out of 4 converging packets are dropped every tick)
-    *   **Average Latency**: 5.5 ticks (1 tick input link + 3.5 ticks queuing delay at `R3` + 1 tick output link)
-    *   **Queues**: `R3` queue is full at 5/5. `R1`, `R2`, and `R4` queues are 0.
+    *   **Average Latency**: 3.5 ticks 
+    *   **Queues**: `R3` queue stays at 4/5 (80% Load, shown as Red/congested in the UI since it meets the 80% congestion threshold, with 2 packets drained and 4 packets arriving every tick). `R1`, `R2`, and `R4` queues are 0.
     *   **Link Utilization**: `L13` is 20%, `L23` is 20%, `L34` is 20% (carrying 2 processed packets/tick).
 

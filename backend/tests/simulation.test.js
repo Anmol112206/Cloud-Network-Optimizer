@@ -267,5 +267,66 @@ describe('Simulation Engine Suite', () => {
       clock.tick();
       expect(packet1.getStatus()).toBe(Packet.States.DROPPED);
     });
+
+    it('should respect router processing rate and build queue when incoming rate exceeds processing rate', () => {
+      // Configure R2 processing rate to 1, capacity to 3, and R1/R3 to high processing rate (e.g. 5)
+      network.addRouter('R1', 10, 5);
+      network.addRouter('R2', 3, 1); // capacity 3, processing rate 1
+      network.addRouter('R3', 10, 5);
+
+      // We have link L1 and L2 (latency 1 tick to make tracking simpler)
+      network.addLink('L1', 'R1', 'R2', 1000, 1);
+      network.addLink('L2', 'R2', 'R3', 1000, 1);
+      topology.addConnection('R1', 'R2', 'L1');
+      topology.addConnection('R2', 'R3', 'L2');
+
+      // Send 3 packets from R1 -> R3
+      const p1 = network.createPacket('P-RATE-1', 'R1', 'R3', 100, clock.getCurrentTime());
+      const p2 = network.createPacket('P-RATE-2', 'R1', 'R3', 100, clock.getCurrentTime());
+      const p3 = network.createPacket('P-RATE-3', 'R1', 'R3', 100, clock.getCurrentTime());
+      
+      routingService.routePacket(p1);
+      routingService.routePacket(p2);
+      routingService.routePacket(p3);
+
+      // Tick 1: R1 drains all 3 packets (rate = 5) and puts them on link L1 (remaining: 1).
+      clock.tick();
+      expect(p1.getStatus()).toBe(Packet.States.IN_TRANSIT);
+      expect(p2.getStatus()).toBe(Packet.States.IN_TRANSIT);
+      expect(p3.getStatus()).toBe(Packet.States.IN_TRANSIT);
+
+      // Tick 2: All 3 packets arrive at R2. 
+      // R2 processPacket is called for each. Since R2 capacity is 3, all 3 are queued successfully.
+      // Then, R2 queue drains up to its processing rate (which is 1).
+      // So p1 is drained and transmitted on L2, while p2 and p3 remain in R2's queue.
+      clock.tick();
+      expect(p1.getStatus()).toBe(Packet.States.IN_TRANSIT); // on L2 now
+      expect(p2.getStatus()).toBe(Packet.States.ROUTED); // queued at R2
+      expect(p3.getStatus()).toBe(Packet.States.ROUTED); // queued at R2
+      expect(network.getRouter('R2').getQueueLength()).toBe(2);
+
+      // Tick 3:
+      // - p1 arrives at R3 (destination) and is delivered.
+      // - R2 queue drains up to processing rate (1). p2 is drained and transmitted on L2.
+      // - p3 remains in R2's queue.
+      clock.tick();
+      expect(p1.getStatus()).toBe(Packet.States.DELIVERED);
+      expect(p2.getStatus()).toBe(Packet.States.IN_TRANSIT); // on L2
+      expect(p3.getStatus()).toBe(Packet.States.ROUTED); // queued at R2
+      expect(network.getRouter('R2').getQueueLength()).toBe(1);
+
+      // Tick 4:
+      // - p2 delivered.
+      // - R2 drains p3 and transmits on L2.
+      // - R2 queue is now empty.
+      clock.tick();
+      expect(p2.getStatus()).toBe(Packet.States.DELIVERED);
+      expect(p3.getStatus()).toBe(Packet.States.IN_TRANSIT);
+      expect(network.getRouter('R2').getQueueLength()).toBe(0);
+
+      // Tick 5: p3 delivered.
+      clock.tick();
+      expect(p3.getStatus()).toBe(Packet.States.DELIVERED);
+    });
   });
 });

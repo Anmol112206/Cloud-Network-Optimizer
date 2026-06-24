@@ -50,12 +50,9 @@ class SimulationManager {
     const metricsService = new MetricsService(network, clock);
 
     const generator = new TrafficGenerator(network, clock, {
-      packetRate: 1.5,
-      packetSizeMin: 100,
-      packetSizeMax: 1500,
-      enabled: true
+      enabled: false
     });
-    const simulator = new PacketSimulator(network, clock, routingService);
+    const simulator = new PacketSimulator(network, clock, routingService, generator);
 
     const snapshotService = new SnapshotService(
       clock,
@@ -96,7 +93,9 @@ class SimulationManager {
     // Start clock ticking in non-test env
     if (process.env.NODE_ENV !== 'test') {
       context.tickInterval = setInterval(() => {
-        context.clock.tick();
+        if (context.generator && context.generator.options.enabled) {
+          context.clock.tick();
+        }
       }, 2000);
     }
 
@@ -125,31 +124,30 @@ class SimulationManager {
       // 1. Try to load from Redis cache first
       let routers = await metricsCache.getRouters(networkId);
       let links = await metricsCache.getLinks(networkId);
-      let traffic = await metricsCache.getTraffic(networkId);
+      let trafficStreams = await metricsCache.getTraffic(networkId);
 
       // 2. If missing, fetch from database and cache
-      if (!routers || !links || !traffic) {
+      if (!routers || !links || !trafficStreams) {
         const dbRouters = await routerRepository.getAll(networkId);
         const dbLinks = await linkRepository.getAll(networkId);
-        const dbTraffic = await trafficRepository.get(networkId);
+        const dbTraffic = await trafficRepository.getAll(networkId);
 
         routers = dbRouters.map(r => ({ id: r.id, capacity: r.capacity, processingRate: r.processingRate }));
         links = dbLinks.map(l => ({ id: l.id, source: l.source, target: l.target, bandwidth: l.bandwidth, latency: l.latency }));
-        traffic = dbTraffic ? {
-          packetRate: dbTraffic.packetRate,
-          packetSizeMin: dbTraffic.packetSizeMin,
-          packetSizeMax: dbTraffic.packetSizeMax,
-          enabled: dbTraffic.enabled,
-          source: dbTraffic.source,
-          destination: dbTraffic.destination
-        } : null;
+        trafficStreams = dbTraffic ? dbTraffic.map(t => ({
+          id: t.id,
+          packetRate: t.packetRate,
+          packetSizeMin: t.packetSizeMin,
+          packetSizeMax: t.packetSizeMax,
+          enabled: t.enabled,
+          source: t.source,
+          destination: t.destination
+        })) : [];
 
         // Cache back
         await metricsCache.cacheRouters(routers, networkId);
         await metricsCache.cacheLinks(links, networkId);
-        if (traffic) {
-          await metricsCache.cacheTraffic(traffic, networkId);
-        }
+        await metricsCache.cacheTraffic(trafficStreams, networkId);
       }
 
       // 3. Populate network and topology
@@ -161,14 +159,9 @@ class SimulationManager {
         topology.addConnection(l.source, l.target, l.id);
       }
 
-      // 4. Update generator options
-      if (traffic) {
-        generator.options.packetRate = traffic.packetRate;
-        generator.options.packetSizeMin = traffic.packetSizeMin;
-        generator.options.packetSizeMax = traffic.packetSizeMax;
-        generator.options.enabled = traffic.enabled;
-        generator.options.source = traffic.source || null;
-        generator.options.destination = traffic.destination || null;
+      // 4. Update generator streams
+      if (generator) {
+        generator.streams = trafficStreams || [];
       }
 
       if (context.routingService && typeof context.routingService.clearCache === 'function') {

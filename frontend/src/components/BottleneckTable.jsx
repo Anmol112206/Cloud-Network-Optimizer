@@ -1,5 +1,7 @@
 import { AlertCircle, Link2 } from 'lucide-react';
 
+const THRESHOLD_SEVERE = parseFloat(import.meta.env.VITE_THRESHOLD_SEVERE || '0.8');
+
 export default function BottleneckTable({ bottlenecks }) {
   const list = bottlenecks || [];
 
@@ -36,8 +38,8 @@ export default function BottleneckTable({ bottlenecks }) {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {list.map((item, idx) => {
-                const percent = (item.utilization * 100).toFixed(0);
-                const isSevere = item.utilization > 0.8;
+                const percent = (item.utilization * 100).toFixed(3);
+                const isSevere = item.utilization >= THRESHOLD_SEVERE;
                 
                 return (
                   <tr key={idx} className="hover:bg-slate-50 transition-colors duration-150">

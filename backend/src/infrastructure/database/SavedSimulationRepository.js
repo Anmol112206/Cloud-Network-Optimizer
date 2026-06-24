@@ -2,6 +2,16 @@ const prisma = require('./PrismaClient');
 
 class SavedSimulationRepository {
   async saveSimulation(simulation) {
+    const finalNetworkId = simulation.networkId || 'default-network';
+    await prisma.network.upsert({
+      where: { id: finalNetworkId },
+      update: {},
+      create: {
+        id: finalNetworkId,
+        name: `Network ${finalNetworkId.substring(0, 8)}`,
+        browserId: finalNetworkId
+      }
+    });
     return prisma.savedSimulation.create({
       data: {
         simulationId: simulation.simulationId,
@@ -16,7 +26,7 @@ class SavedSimulationRepository {
         healthScore: simulation.healthScore,
         healthStatus: simulation.healthStatus,
         details: simulation.details,
-        networkId: simulation.networkId || 'default-network'
+        networkId: finalNetworkId
       }
     });
   }

@@ -17,6 +17,7 @@ model Network {
   routers     Router[]
   links       Link[]
   simulations SavedSimulation[]
+  trafficSettings TrafficSettings[]
   createdAt   DateTime           @default(now())
 }
 
@@ -48,6 +49,8 @@ model TrafficSettings {
   enabled       Boolean
   source        String?
   destination   String?
+  networkId     String   @default("default-network")
+  network       Network  @relation(fields: [networkId], references: [id], onDelete: Cascade)
   updatedAt     DateTime @updatedAt
 }
 

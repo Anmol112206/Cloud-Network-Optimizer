@@ -26,9 +26,14 @@ class QueueManager {
     return null;
   }
 
-  drain() {
-    const packets = this.queue;
-    this.queue = [];
+  drain(limit = null) {
+    let packets;
+    if (limit !== null && limit > 0) {
+      packets = this.queue.splice(0, limit);
+    } else {
+      packets = this.queue;
+      this.queue = [];
+    }
     this.processed += packets.length;
     return packets;
   }

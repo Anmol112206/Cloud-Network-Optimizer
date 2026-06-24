@@ -21,7 +21,7 @@ class Router {
   }
 
   drain() {
-    return this.queueManager.drain();
+    return this.queueManager.drain(this.processingRate);
   }
 
   getId() {

@@ -92,12 +92,7 @@ class SnapshotService {
         }
       }
 
-      const trafficConfiguration = this.generator ? {
-        packetRate: this.generator.options.packetRate,
-        packetSizeMin: this.generator.options.packetSizeMin,
-        packetSizeMax: this.generator.options.packetSizeMax,
-        enabled: this.generator.options.enabled
-      } : null;
+      const trafficConfiguration = this.generator ? this.generator.streams : [];
 
       if (process.env.NODE_ENV !== 'test') {
         try {

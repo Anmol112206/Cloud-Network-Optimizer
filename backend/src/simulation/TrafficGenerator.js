@@ -7,14 +7,29 @@ class TrafficGenerator {
     this.network = network;
     this.clock = clock;
     this.options = {
-      packetRate: options.packetRate !== undefined ? options.packetRate : 0.5, // Probability of packet per tick (if < 1) or fixed count (if >= 1)
-      packetSizeMin: options.packetSizeMin || 64,
-      packetSizeMax: options.packetSizeMax || 1500,
+      packetRate: options.packetRate !== undefined ? options.packetRate : Number(process.env.DEFAULT_PACKET_RATE || 1.5),
+      packetSizeMin: options.packetSizeMin || Number(process.env.DEFAULT_PACKET_SIZE_MIN || 64),
+      packetSizeMax: options.packetSizeMax || Number(process.env.DEFAULT_PACKET_SIZE_MAX || 1500),
       enabled: options.enabled !== false,
       source: options.source || null,
       destination: options.destination || null,
       ...options
     };
+
+    // Initialize list of concurrent traffic streams
+    this.streams = [];
+    if (options && (options.packetRate !== undefined || options.source !== undefined || options.destination !== undefined)) {
+      this.streams.push({
+        id: options.id || 'default-stream',
+        packetRate: this.options.packetRate,
+        packetSizeMin: this.options.packetSizeMin,
+        packetSizeMax: this.options.packetSizeMax,
+        enabled: true,
+        source: this.options.source,
+        destination: this.options.destination
+      });
+    }
+
     this.generatedCount = 0;
 
     // Register with clock
@@ -30,50 +45,48 @@ class TrafficGenerator {
     if (routers.length < 2) return [];
 
     const generatedPackets = [];
-    const rate = this.options.packetRate;
-    
-    // Determine number of packets to generate this tick
-    let countToGenerate = 0;
-    if (rate >= 1) {
-      countToGenerate = Math.floor(rate);
-    } else {
-      // Use random probability
-      if (Math.random() < rate) {
-        countToGenerate = 1;
-      }
-    }
 
-    for (let i = 0; i < countToGenerate; i++) {
-      let source = this.options.source;
-      let destination = this.options.destination;
+    for (const stream of this.streams) {
+      if (!stream.enabled) continue;
 
-      // Select source: use custom if valid and exists in network, otherwise random
-      if (!source || !routers.includes(source)) {
-        const srcIdx = Math.floor(Math.random() * routers.length);
-        source = routers[srcIdx];
-      }
-
-      // Select destination: use custom if valid, exists in network, and is not equal to source
-      if (!destination || !routers.includes(destination) || destination === source) {
-        let dstIdx = Math.floor(Math.random() * routers.length);
-        while (routers[dstIdx] === source) {
-          dstIdx = Math.floor(Math.random() * routers.length);
+      const rate = stream.packetRate;
+      let countToGenerate = 0;
+      if (rate >= 1) {
+        countToGenerate = Math.floor(rate);
+      } else {
+        if (Math.random() < rate) {
+          countToGenerate = 1;
         }
-        destination = routers[dstIdx];
       }
 
-      const size = Math.floor(
-        Math.random() * (this.options.packetSizeMax - this.options.packetSizeMin + 1) + 
-        this.options.packetSizeMin
-      );
+      for (let i = 0; i < countToGenerate; i++) {
+        let source = stream.source;
+        let destination = stream.destination;
 
-      this.generatedCount++;
-      const packetId = `P-GEN-${this.generatedCount}-${this.clock ? this.clock.getCurrentTime() : 'NOCLOCK'}`;
-      
-      // Pass the current virtual clock time as createdAt
-      const virtualTime = this.clock ? this.clock.getCurrentTime() : Date.now();
-      const packet = this.network.createPacket(packetId, source, destination, size, virtualTime);
-      generatedPackets.push(packet);
+        if (!source || !routers.includes(source)) {
+          const srcIdx = Math.floor(Math.random() * routers.length);
+          source = routers[srcIdx];
+        }
+
+        if (!destination || !routers.includes(destination) || destination === source) {
+          let dstIdx = Math.floor(Math.random() * routers.length);
+          while (routers[dstIdx] === source) {
+            dstIdx = Math.floor(Math.random() * routers.length);
+          }
+          destination = routers[dstIdx];
+        }
+
+        const size = Math.floor(
+          Math.random() * (stream.packetSizeMax - stream.packetSizeMin + 1) + 
+          stream.packetSizeMin
+        );
+
+        this.generatedCount++;
+        const packetId = `P-GEN-${this.generatedCount}-${this.clock ? this.clock.getCurrentTime() : 'NOCLOCK'}`;
+        const virtualTime = this.clock ? this.clock.getCurrentTime() : Date.now();
+        const packet = this.network.createPacket(packetId, source, destination, size, virtualTime);
+        generatedPackets.push(packet);
+      }
     }
 
     return generatedPackets;

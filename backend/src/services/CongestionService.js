@@ -6,7 +6,7 @@ const metricsCacheDefault = require('../infrastructure/redis/MetricsCache');
 class CongestionService {
   constructor(network, metricsCache = metricsCacheDefault, options = {}) {
     this.network = network;
-    this.congestionThreshold = 0.8;
+    this.congestionThreshold = Number(process.env.CONGESTION_THRESHOLD || 0.8);
     this.history = [];
     this.metricsCache = metricsCache;
     this.networkId = options.networkId || 'default-network';
@@ -61,7 +61,7 @@ class CongestionService {
         routerId: r.getId(),
         utilization: r.getLoad()
       }))
-      .filter(m => m.utilization > this.congestionThreshold);
+      .filter(m => m.utilization >= this.congestionThreshold);
   }
 
   detectCongestedLinks() {
@@ -71,7 +71,7 @@ class CongestionService {
         linkId: l.getId(),
         utilization: l.getUtilization()
       }))
-      .filter(m => m.utilization > this.congestionThreshold);
+      .filter(m => m.utilization >= this.congestionThreshold);
   }
 
   getNetworkCongestion() {
@@ -83,14 +83,14 @@ class CongestionService {
     return {
       average: avgLoad,
       maximum: maxLoad,
-      isCongested: maxLoad > this.congestionThreshold
+      isCongested: maxLoad >= this.congestionThreshold
     };
   }
 
   getCongestionReport() {
     const routers = Array.from(this.network.routers.values());
     const congestedRouters = routers
-      .filter(r => r.getLoad() > this.congestionThreshold)
+      .filter(r => r.getLoad() >= this.congestionThreshold)
       .map(r => ({
         routerId: r.getId(),
         load: r.getLoad(),
@@ -146,7 +146,7 @@ class CongestionService {
   identifyBottlenecks() {
     const links = Array.from(this.network.links.values());
     const bottlenecks = links
-      .filter(l => l.getUtilization() > this.congestionThreshold)
+      .filter(l => l.getUtilization() >= this.congestionThreshold)
       .map(l => ({
         linkId: l.getId(),
         source: l.getSource(),

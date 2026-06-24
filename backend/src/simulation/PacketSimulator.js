@@ -5,10 +5,11 @@ const Packet = require('../domain/entities/Packet');
  * Advances packet propagation along computed paths on clock ticks
  */
 class PacketSimulator {
-  constructor(network, clock, routingService) {
+  constructor(network, clock, routingService, generator = null) {
     this.network = network;
     this.clock = clock;
     this.routingService = routingService;
+    this.generator = generator;
     
     // Track active simulation states for packets on links
     // Map of packetId -> { packet, currentLinkId, ticksRemaining }
@@ -45,7 +46,7 @@ class PacketSimulator {
             if (!isAlreadyQueued) {
               const queued = router.processPacket(packet);
               if (!queued) {
-                packet.setStatus(Packet.States.DROPPED); // Queue full at source router
+                packet.setStatus(Packet.States.DROPPED, this.clock ? this.clock.getCurrentTime() : Date.now()); // Queue full at source router
               }
             }
           }
@@ -55,6 +56,11 @@ class PacketSimulator {
   }
 
   step() {
+    // If generator is present, check if simulation is enabled globally
+    if (this.generator && !this.generator.options.enabled) {
+      return;
+    }
+
     // 1. Check for newly routed packets to place them in their source router queue
     this.initializePackets();
 
@@ -79,7 +85,7 @@ class PacketSimulator {
         const nextRouterId = path[packet.currentHop];
 
         if (!nextRouterId) {
-          packet.setStatus(Packet.States.DROPPED);
+          packet.setStatus(Packet.States.DROPPED, this.clock ? this.clock.getCurrentTime() : Date.now());
           continue;
         }
 
@@ -92,12 +98,12 @@ class PacketSimulator {
           if (nextRouter) {
             const queued = nextRouter.processPacket(packet);
             if (queued) {
-              packet.setStatus(Packet.States.ROUTED); // Back to ROUTED state while in queue
+              packet.setStatus(Packet.States.ROUTED, this.clock ? this.clock.getCurrentTime() : Date.now()); // Back to ROUTED state while in queue
             } else {
-              packet.setStatus(Packet.States.DROPPED); // Congestion drop
+              packet.setStatus(Packet.States.DROPPED, this.clock ? this.clock.getCurrentTime() : Date.now()); // Congestion drop
             }
           } else {
-            packet.setStatus(Packet.States.DROPPED); // Unreachable router
+            packet.setStatus(Packet.States.DROPPED, this.clock ? this.clock.getCurrentTime() : Date.now()); // Unreachable router
           }
         }
       }
@@ -121,7 +127,7 @@ class PacketSimulator {
           if (packet.currentHop === path.length - 1) {
             packet.markDelivered(this.clock ? this.clock.getCurrentTime() : Date.now());
           } else {
-            packet.setStatus(Packet.States.DROPPED);
+            packet.setStatus(Packet.States.DROPPED, this.clock ? this.clock.getCurrentTime() : Date.now());
           }
           continue;
         }
@@ -132,14 +138,14 @@ class PacketSimulator {
 
         if (link) {
           link.transmit(packet);
-          packet.setStatus(Packet.States.IN_TRANSIT);
+          packet.setStatus(Packet.States.IN_TRANSIT, this.clock ? this.clock.getCurrentTime() : Date.now());
           this.activeTransits.set(packet.getId(), {
             packet,
             currentLinkId: link.getId(),
             ticksRemaining: link.getLatency()
           });
         } else {
-          packet.setStatus(Packet.States.DROPPED); // Drop if no link exists
+          packet.setStatus(Packet.States.DROPPED, this.clock ? this.clock.getCurrentTime() : Date.now()); // Drop if no link exists
         }
       }
     }

@@ -21,6 +21,35 @@ class TopologyBuilder {
     this.reverseAdjacencyList.get(routerB).push({ router: routerA, link: linkId });
   }
 
+  removeConnection(routerA, routerB) {
+    if (this.adjacencyList.has(routerA)) {
+      this.adjacencyList.set(
+        routerA,
+        this.adjacencyList.get(routerA).filter(conn => conn.router !== routerB)
+      );
+    }
+    if (this.reverseAdjacencyList.has(routerB)) {
+      this.reverseAdjacencyList.set(
+        routerB,
+        this.reverseAdjacencyList.get(routerB).filter(conn => conn.router !== routerA)
+      );
+    }
+    
+    // Links are bidirectional in the simulator, so remove both directions
+    if (this.adjacencyList.has(routerB)) {
+      this.adjacencyList.set(
+        routerB,
+        this.adjacencyList.get(routerB).filter(conn => conn.router !== routerA)
+      );
+    }
+    if (this.reverseAdjacencyList.has(routerA)) {
+      this.reverseAdjacencyList.set(
+        routerA,
+        this.reverseAdjacencyList.get(routerA).filter(conn => conn.router !== routerB)
+      );
+    }
+  }
+
   getNeighbors(routerId) {
     return this.adjacencyList.get(routerId) || [];
   }

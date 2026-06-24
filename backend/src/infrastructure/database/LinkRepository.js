@@ -3,6 +3,15 @@ const prisma = require('./PrismaClient');
 class LinkRepository {
   async save(link, networkId) {
     const finalNetworkId = link.networkId || networkId || 'default-network';
+    await prisma.network.upsert({
+      where: { id: finalNetworkId },
+      update: {},
+      create: {
+        id: finalNetworkId,
+        name: `Network ${finalNetworkId.substring(0, 8)}`,
+        browserId: finalNetworkId
+      }
+    });
     return prisma.link.upsert({
       where: { id: link.id },
       update: {
@@ -32,6 +41,12 @@ class LinkRepository {
 
   async getById(id, networkId = 'default-network') {
     return prisma.link.findFirst({
+      where: { id, networkId }
+    });
+  }
+
+  async delete(id, networkId = 'default-network') {
+    return prisma.link.deleteMany({
       where: { id, networkId }
     });
   }

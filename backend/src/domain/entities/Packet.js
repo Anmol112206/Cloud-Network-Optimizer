@@ -13,6 +13,7 @@ class Packet {
     this.path = [];
     this.currentHop = 0;
     this.deliveredAt = null;
+    this.droppedAt = null;
   }
 
   getAge(now = Date.now()) {
@@ -39,8 +40,11 @@ class Packet {
     return this.status;
   }
 
-  setStatus(status) {
+  setStatus(status, now = null) {
     this.status = status;
+    if (status === Packet.States.DROPPED && this.droppedAt === null) {
+      this.droppedAt = now;
+    }
   }
 
   addToPath(routerId) {

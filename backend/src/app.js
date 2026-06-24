@@ -2,6 +2,7 @@
  * Express Application Setup
  * Configures and initializes the Express app
  */
+require('dotenv').config();
 const express = require('express');
 const requestLogger = require('./api/middleware/requestLogger');
 const errorHandler = require('./api/middleware/errorHandler');
@@ -59,7 +60,9 @@ if (process.env.NODE_ENV !== 'test') {
   initializeTopologyAndSettings().then(() => {
     // Bind interval to default context
     defaultContext.tickInterval = setInterval(() => {
-      clock.tick();
+      if (generator && generator.options.enabled) {
+        clock.tick();
+      }
     }, 2000);
 
     // Start Real Network Monitor collector
@@ -73,11 +76,12 @@ if (process.env.NODE_ENV !== 'test') {
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(requestLogger);
+// app.use(requestLogger); // Disabled to prevent console clutter from frequent client polling
 
 // X-Network-Id header middleware
 app.use(async (req, res, next) => {
   try {
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
     const networkId = req.headers['x-network-id'] || 'default-network';
     req.networkId = networkId;
     req.networkContext = await simulationManager.getOrCreateContext(networkId);

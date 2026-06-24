@@ -62,7 +62,10 @@ export async function createRouter(id, capacity, processingRate) {
     method: 'POST',
     body: JSON.stringify({ id, capacity, processingRate })
   });
-  if (!response.ok) throw new Error(`Failed to create router: ${id}`);
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || `Failed to create router: ${id}`);
+  }
   return response.json();
 }
 
@@ -71,16 +74,52 @@ export async function createLink(id, source, target, bandwidth, latency) {
     method: 'POST',
     body: JSON.stringify({ id, source, target, bandwidth, latency })
   });
-  if (!response.ok) throw new Error(`Failed to create link: ${id}`);
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || `Failed to create link: ${id}`);
+  }
   return response.json();
 }
 
-export async function updateTrafficSettings(packetRate, packetSizeMin, packetSizeMax, enabled = true, source = null, destination = null) {
+export async function updateTrafficSettings(packetRate, packetSizeMin, packetSizeMax, enabled = true, source = null, destination = null, id = null) {
   const response = await apiFetch('/api/network/traffic', {
     method: 'POST',
-    body: JSON.stringify({ packetRate, packetSizeMin, packetSizeMax, enabled, source, destination })
+    body: JSON.stringify({ id, packetRate, packetSizeMin, packetSizeMax, source, destination })
   });
-  if (!response.ok) throw new Error('Failed to update traffic settings');
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || 'Failed to update traffic settings');
+  }
+  return response.json();
+}
+
+export async function deleteTrafficStream(id) {
+  const response = await apiFetch(`/api/network/traffic/${id}`, {
+    method: 'DELETE'
+  });
+  if (!response.ok) throw new Error('Failed to delete traffic stream');
+  return response.json();
+}
+
+export async function deleteLink(id) {
+  const response = await apiFetch(`/api/network/links/${id}`, {
+    method: 'DELETE'
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || `Failed to delete link: ${id}`);
+  }
+  return response.json();
+}
+
+export async function deleteRouter(id) {
+  const response = await apiFetch(`/api/network/routers/${id}`, {
+    method: 'DELETE'
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || `Failed to delete router: ${id}`);
+  }
   return response.json();
 }
 
@@ -89,6 +128,30 @@ export async function resetNetworkTopology() {
     method: 'POST'
   });
   if (!response.ok) throw new Error('Failed to reset network topology');
+  return response.json();
+}
+
+export async function startSimulation() {
+  const response = await apiFetch('/api/network/simulation/start', {
+    method: 'POST'
+  });
+  if (!response.ok) throw new Error('Failed to start simulation');
+  return response.json();
+}
+
+export async function stopSimulation() {
+  const response = await apiFetch('/api/network/simulation/stop', {
+    method: 'POST'
+  });
+  if (!response.ok) throw new Error('Failed to stop simulation');
+  return response.json();
+}
+
+export async function resetSimulationPackets() {
+  const response = await apiFetch('/api/network/simulation/reset-packets', {
+    method: 'POST'
+  });
+  if (!response.ok) throw new Error('Failed to reset simulation packets');
   return response.json();
 }
 
