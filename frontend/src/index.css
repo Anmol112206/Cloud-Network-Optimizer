@@ -1,0 +1,57 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    background-color: #f8fafc;
+    color: #0f172a;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* React Flow Canvas and Background settings */
+.react-flow {
+  background-color: #f8fafc !important;
+}
+
+.react-flow__background {
+  background-color: #f8fafc !important;
+}
+
+.react-flow__handle {
+  width: 8px !important;
+  height: 8px !important;
+  background: #6366f1 !important;
+  border: 2px solid #ffffff !important;
+}
+
+.react-flow__edge-path {
+  stroke-width: 3.5px !important;
+  transition: stroke 0.3s ease;
+}
+
+.react-flow__edge-textbg {
+  fill: #ffffff !important;
+}
+
+/* Custom layout styling for default React Flow nodes */
+.react-flow__node-default {
+  border-radius: 12px !important;
+  padding: 8px 12px !important;
+  transition: all 0.3s ease !important;
+}

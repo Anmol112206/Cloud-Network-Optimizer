@@ -1,0 +1,39 @@
+{
+  "name": "cloud-network-optimizer-backend",
+  "version": "1.0.0",
+  "description": "Backend simulator for cloud network optimization with domain-driven design",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "test": "jest --coverage",
+    "test:watch": "jest --watch"
+  },
+  "keywords": [
+    "network",
+    "simulation",
+    "cloud",
+    "optimizer",
+    "routing",
+    "congestion"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@prisma/adapter-pg": "^7.8.0",
+    "@prisma/client": "^7.8.0",
+    "express": "^4.18.2",
+    "pg": "^8.21.0",
+    "redis": "^6.0.0",
+    "systeminformation": "^5.31.7"
+  },
+  "devDependencies": {
+    "dotenv": "^17.4.2",
+    "jest": "^29.5.0",
+    "nodemon": "^3.0.1",
+    "prisma": "^7.8.0"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}

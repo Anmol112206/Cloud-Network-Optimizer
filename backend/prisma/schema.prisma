@@ -1,0 +1,77 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   =  "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Network {
+  id          String             @id
+  browserId   String             @unique @map("browser_id")
+  name        String
+  routers     Router[]
+  links       Link[]
+  simulations SavedSimulation[]
+  createdAt   DateTime           @default(now())
+}
+
+model Router {
+  id             String   @id
+  capacity       Int
+  processingRate Int      @default(1)
+  networkId      String   @default("default-network")
+  network        Network  @relation(fields: [networkId], references: [id], onDelete: Cascade)
+  updatedAt      DateTime @updatedAt
+}
+
+model Link {
+  id        String   @id
+  source    String
+  target    String
+  bandwidth Float
+  latency   Int
+  networkId String   @default("default-network")
+  network   Network  @relation(fields: [networkId], references: [id], onDelete: Cascade)
+  updatedAt DateTime @updatedAt
+}
+
+model TrafficSettings {
+  id            String   @id
+  packetRate    Float
+  packetSizeMin Int
+  packetSizeMax Int
+  enabled       Boolean
+  source        String?
+  destination   String?
+  updatedAt     DateTime @updatedAt
+}
+
+model SavedSimulation {
+  id               Int      @id @default(autoincrement())
+  simulationId     String?  // To group snapshots of a single simulation run
+  tick             Int
+  throughput       Float
+  latency          Float    // Average latency of delivered packets
+  packetLoss       Float
+  congestion       Float    // Average/Maximum network congestion level
+  
+  // Additional metrics for complete observability
+  totalPackets     Int      @default(0)
+  deliveredPackets Int      @default(0)
+  droppedPackets   Int      @default(0)
+  healthScore      Float?
+  healthStatus     String?  // 'healthy', 'degraded', 'critical'
+  details          Json?    // Detailed router and link metrics as JSON
+
+  networkId        String   @default("default-network")
+  network          Network  @relation(fields: [networkId], references: [id], onDelete: Cascade)
+  createdAt        DateTime @default(now())
+
+  @@index([simulationId])
+  @@index([tick])
+}
